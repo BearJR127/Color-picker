@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Color Picker</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+    input, button { margin: 10px; padding: 10px; font-size: 16px; }
+    #countdown, #statusMsg { font-size: 1.2em; margin: 20px; }
+    .hidden { display: none; }
+    .instruction-box {
+          border: 2px solid #888;
+          background-color: #f9f9f9;
+          padding: 15px;
+          margin: 20px auto;
+          width: 80%;
+          text-align: justify;
+          border-radius: 10px;
+          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    .color-radio label { margin: 0 10px; padding: 5px 10px; border-radius: 5px; color: #fff; cursor: pointer; }
+    .red { background-color: red; }
+    .green { background-color: green; }
+    .blue { background-color: blue; }
+    .yellow { background-color: goldenrod; }
+    #summaryTable { border-collapse: collapse; margin: 20px auto; width: 90%; }
+    #summaryTable th, #summaryTable td { border: 1px solid #ccc; padding: 8px; }
+    footer { margin-top: 40px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Color Picker - A Fun Color Guessing Game </h1>
+  <input type="text" id="roomCode" placeholder="Enter Room Code">
+  <button onclick="joinRoom()" id="joinBtn">Join Room</button>
+  <div id="trialCounter"></div>
+
+  <div id="roleSection" class="hidden">
+    <button onclick="setRole('sender')" id="senderBtn">I am the Sender</button>
+    <button onclick="setRole('receiver')" id="receiverBtn">I am the Receiver</button>
+  </div>
+  
+  <div id="instructions" class="hidden">
+      <div id="senderInstructions" class="hidden instruction-box">
+        <p><strong>Instructions for Sender:</strong> Choose a random color, then select and submit the color. A timer will begin - focus on the color intensely for 7 seconds. A receiver will be prompted to receive the color you are focusing on. Wait until the receiver submits their answer then you’ll be prompted to start a new trial. After 10 trials you’ll be shown the overall results. Let’s see how well you do!</p>
+      </div>
+      <div id="receiverInstructions" class="hidden instruction-box">
+        <p><strong>Instructions for Receiver:</strong> After a sender has submitted their random color, a countdown timer will begin for 7 seconds. The sender is focusing intensely on this color, try to receive their pick. After 7 seconds, enter the color you received and submit. A new trial will begin, and you’ll wait for the sender to submit their next pick. After 10 trials you’ll receive a summary of results. How well can you do? Let’s see!</p>
+      </div>
+    </div>
+
+  <div id="senderSection" class="hidden">
+    <p>Sender: Choose a color</p>
+    <div id="senderInputBlock">
+    <form id="senderForm" class="color-radio">
+      <label class="red"><input type="radio" name="sendColor" value="red"> Red</label>
+      <label class="green"><input type="radio" name="sendColor" value="green"> Green</label>
+      <label class="blue"><input type="radio" name="sendColor" value="blue"> Blue</label>
+      <label class="yellow"><input type="radio" name="sendColor" value="yellow"> Yellow</label>
+    </form>
+    <button onclick="startTrial()">Submit Color</button>
+    </div>
+    <div id="statusMsg"></div>
+    <div id="senderCountdown"></div>
+    <div id="trialResult" class="hidden"></div>
+    <button id="nextTrialBtn" class="hidden" onclick="resetSender()">Start Next Trial</button>
+    <div id="summary" class="hidden"></div>
+    <button onclick="downloadCSV()" class="hidden" id="csvBtn">Download CSV</button>
+  </div>
+
+  <div id="receiverSection" class="hidden">
+    <p id="receiverPrompt">Waiting for sender...</p>
+    <div id="countdown"></div>
+    <div id="guessSection" class="hidden">
+      <form id="guessForm" class="color-radio">
+        <label class="red"><input type="radio" name="guess" value="red"> Red</label>
+        <label class="green"><input type="radio" name="guess" value="green"> Green</label>
+        <label class="blue"><input type="radio" name="guess" value="blue"> Blue</label>
+        <label class="yellow"><input type="radio" name="guess" value="yellow"> Yellow</label>
+      </form>
+      <button onclick="submitGuess()">Submit Guess</button>
+    </div>
+    <div id="receiverSummary" class="hidden"></div>
+    <button onclick="downloadCSV()" class="hidden" id="csvBtnReceiver">Download CSV</button>
+  </div>
+
+  <footer>
+    © Jason W. Runyon 2025. All rights reserved.
+  </footer>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDDxRTWozDi_ohxMok37twz-3LSSK_QleA",
+      authDomain: "psicolorpicker.firebaseapp.com",
+      databaseURL: "https://psicolorpicker-default-rtdb.firebaseio.com",
+      projectId: "psicolorpicker",
+      storageBucket: "psicolorpicker.firebasestorage.app",
+      messagingSenderId: "745056348455",
+      appId: "1:745056348455:web:b52e928aaf812e2e9ca102"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let room = "", role = "", trialNum = 0;
+    const maxTrials = 10;
+    const results = [];
+
+    function joinRoom() {
+      room = document.getElementById("roomCode").value.trim();
+      if (room) {
+        document.getElementById("roleSection").classList.remove("hidden");
+        document.getElementById("roomCode").disabled = true;
+        document.getElementById("joinBtn").disabled = true;
+      }
+    }
+
+      function setRole(r) {
+        role = r;
+        document.getElementById("senderBtn").disabled = true;
+        document.getElementById("receiverBtn").disabled = true;
+        document.getElementById("instructions").classList.remove("hidden");
+
+        if (r === 'sender') {
+          document.getElementById("senderInstructions").classList.remove("hidden");
+          document.getElementById("senderSection").classList.remove("hidden");
+          db.ref(`rooms/${room}/meta`).once('value').then(snapshot => {
+            trialNum = snapshot.exists() ? snapshot.val().currentTrial || 0 : 0;
+            document.getElementById("trialCounter").innerText = `Trial ${trialNum} of ${maxTrials}`;
+          });
+        } else {
+          document.getElementById("receiverInstructions").classList.remove("hidden");
+          document.getElementById("receiverSection").classList.remove("hidden");
+          watchTrial();
+        }
+      }
+      
+      if (r === "sender") {
+              document.getElementById("senderInstructions").classList.remove("hidden");
+            } else {
+              document.getElementById("receiverInstructions").classList.remove("hidden");
+            }
+
+    function startTrial() {
+      if (trialNum >= maxTrials) return;
+      const form = document.getElementById("senderForm");
+      const color = form.sendColor.value;
+      if (!color) return alert("Please select a color.");
+      trialNum++;
+      document.getElementById("trialCounter").innerText = `Trial ${trialNum} of ${maxTrials}`;
+      const now = new Date().toLocaleString();
+      db.ref(`rooms/${room}/meta`).set({ currentTrial: trialNum });
+      db.ref(`rooms/${room}/trials/trial${trialNum}`).set({ color, status: 'countdown', senderTime: now });
+
+      document.getElementById("senderInputBlock").classList.add("hidden");
+      document.getElementById("statusMsg").innerText = `Focusing on ${color}...`;
+      runCountdown("senderCountdown", 7, () => {
+        document.getElementById("statusMsg").innerText = "Waiting for receiver to guess...";
+        listenForReceiverGuess(trialNum);
+      });
+    }
+
+    function resetSender() {
+      document.querySelectorAll('input[name="sendColor"]').forEach(e => e.checked = false);
+      document.getElementById("senderInputBlock").classList.remove("hidden");
+      document.getElementById("statusMsg").innerText = "";
+      document.getElementById("trialResult").classList.add("hidden");
+      document.getElementById("nextTrialBtn").classList.add("hidden");
+    }
+
+      function submitGuess() {
+        const form = document.getElementById("guessForm");
+        const guess = form.guess.value;
+        if (!guess) return alert("Please select a color.");
+        const now = new Date().toLocaleString();
+        db.ref(`rooms/${room}/trials/trial${trialNum}`).update({
+          receiverGuess: guess,
+          receiverTime: now,
+          status: 'completed'
+        });
+        alert("Guess submitted. Wait for next trial.");
+        document.querySelectorAll('input[name="guess"]').forEach(e => e.checked = false);
+        document.getElementById("guessSection").classList.add("hidden");
+
+        if (trialNum === maxTrials) {
+          loadResultsAndShowSummary();
+        }
+      }
+
+    function runCountdown(targetId, seconds, callback) {
+      const el = document.getElementById(targetId);
+      el.innerText = `${seconds} seconds...`;
+      let count = seconds;
+      const interval = setInterval(() => {
+        if (--count <= 0) {
+          clearInterval(interval);
+          el.innerText = "";
+          callback();
+        } else {
+          el.innerText = `${count} seconds...`;
+        }
+      }, 1000);
+    }
+
+    function listenForReceiverGuess(trial) {
+      db.ref(`rooms/${room}/trials/trial${trial}/receiverGuess`).on('value', snapshot => {
+        const guess = snapshot.val();
+        if (guess) {
+          db.ref(`rooms/${room}/trials/trial${trial}`).once('value').then(snap => {
+            const data = snap.val();
+            const match = data.color === guess ? 'Match' : 'Miss';
+            results.push({ trial, color: data.color, guess, match, senderTime: data.senderTime, receiverTime: data.receiverTime });
+            document.getElementById("trialResult").innerText = `Receiver guessed ${guess} → ${match}`;
+            document.getElementById("trialResult").classList.remove("hidden");
+            document.getElementById("nextTrialBtn").classList.remove("hidden");
+            if (trialNum === maxTrials) showSummary();
+          });
+        }
+      });
+    }
+
+      function watchTrial() {
+        db.ref(`rooms/${room}/meta`).on('value', snapshot => {
+          const data = snapshot.val();
+          if (!data || !data.currentTrial) return;
+          trialNum = data.currentTrial;
+          document.getElementById("trialCounter").innerText = `Trial ${trialNum} of ${maxTrials}`;
+
+          // ADD THIS:
+          if (trialNum > maxTrials) {
+            loadResultsAndShowSummary();
+            return;
+          }
+
+          const trialRef = db.ref(`rooms/${room}/trials/trial${trialNum}`);
+          trialRef.on('value', trialSnap => {
+            const trialData = trialSnap.val();
+            if (!trialData || trialData.status !== 'countdown') return;
+            document.getElementById("receiverPrompt").innerText = "Focus now...";
+            runCountdown("countdown", 7, () => {
+              document.getElementById("guessSection").classList.remove("hidden");
+            });
+          });
+        });
+      }
+
+    function showSummary() {
+        let matches = results.filter(r => r.match === 'Match').length;
+        let pct = ((matches / maxTrials) * 100).toFixed(2);
+        let pValue = (Math.pow(0.25, matches)).toExponential(2);
+        let chancePct = (Math.pow(0.25, matches) * 100).toFixed(10);  // optional precision
+      let html = `
+        <h3>Session Summary</h3>
+        <p>${matches} Matches out of ${maxTrials} (${pct}%)</p>
+        <p>P-Value (random chance of this or better): <strong>${pValue}</strong></p>
+        <p>Percent chance this outcome occurred randomly: <strong>${chancePct}%</strong></p>
+        <table id="summaryTable">
+          <tr><th>Trial</th><th>Color</th><th>Guess</th><th>Match</th></tr>
+      `;
+      results.forEach(r => {
+        html += `<tr><td>${r.trial}</td><td>${r.color}</td><td>${r.guess}</td><td>${r.match}</td></tr>`;
+      });
+      html += '</table>';
+      document.getElementById("summary").innerHTML = html;
+      document.getElementById("summary").classList.remove("hidden");
+      document.getElementById("csvBtn").classList.remove("hidden");
+      document.getElementById("receiverSummary").innerHTML = html;
+      document.getElementById("receiverSummary").classList.remove("hidden");
+      document.getElementById("csvBtnReceiver").classList.remove("hidden");
+    }
+      
+      function loadResultsAndShowSummary() {
+        db.ref(`rooms/${room}/trials`).once('value').then(snapshot => {
+          const trials = snapshot.val();
+          results.length = 0; // clear local array
+          Object.keys(trials).forEach(key => {
+            const t = trials[key];
+            const match = t.color === t.receiverGuess ? 'Match' : 'Miss';
+            results.push({
+              trial: parseInt(key.replace('trial','')),
+              color: t.color,
+              guess: t.receiverGuess,
+              match,
+              senderTime: t.senderTime || '',
+              receiverTime: t.receiverTime || ''
+            });
+          });
+          showSummary();
+        });
+      }
+
+    function downloadCSV() {
+      let csv = "Trial,Color,Guess,Match,SenderTime,ReceiverTime\n";
+      results.forEach(r => {
+        csv += `${r.trial},${r.color},${r.guess},${r.match},${r.senderTime},${r.receiverTime}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `psi_color_picker_results_${Date.now()}.csv`;
+      link.click();
+    }
+  </script>
+</body>
+</html>
