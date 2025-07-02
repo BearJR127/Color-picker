@@ -1,0 +1,22 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "colorTrials": {
+      "$trialId": {
+        ".read": "auth != null",
+        ".write": "!data.exists() && auth != null",
+        ".validate": "newData.hasChildren(['guess','actual','timestamp']) && newData.child('guess').isString() && newData.child('actual').isString() && newData.child('timestamp').isNumber()"
+      }
+    },
+
+    "roomEntries": {
+      "$entryId": {
+        ".read": "auth != null",
+        ".write": "!data.exists() && auth != null",
+        ".validate": "newData.hasChildren(['roomId','timestamp']) && newData.child('roomId').isString() && newData.child('timestamp').isNumber()"
+      }
+    }
+  }
+}
