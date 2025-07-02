@@ -224,35 +224,33 @@
     }
 
       function watchTrial() {
-        db.ref(`rooms/${room}/meta`).on('value', snapshot => {
-          const data = snapshot.val();
-          if (!data || !data.currentTrial) return;
-          const newTrial = data.currentTrial;
+        db.ref(`rooms/${room}/trials`).on('child_added', snap => {
+          const trialKey = snap.key;
+          const trialData = snap.val();
+          trialNum = parseInt(trialKey.replace('trial', ''));
 
-          if (newTrial > maxTrials) {
+          if (trialNum > maxTrials) {
             loadResultsAndShowSummary();
             return;
           }
 
-          trialNum = newTrial;
           document.getElementById("trialCounter").innerText = `Trial ${trialNum} of ${maxTrials}`;
 
           if (currentTrialRef) currentTrialRef.off();
-          currentTrialRef = db.ref(`rooms/${room}/trials/trial${trialNum}`);
-          currentTrialRef.on('value', trialSnap => {
-            const trialData = trialSnap.val();
-            if (!trialData || trialData.status !== 'countdown') return;
-            document.getElementById("receiverPrompt").innerText = "Focus now...";
-            const elapsed = (Date.now() - (trialData.startTime || Date.now())) / 1000;
-            const remaining = Math.ceil(7 - elapsed);
-            if (remaining > 0) {
-              runCountdown("countdown", remaining, () => {
-                document.getElementById("guessSection").classList.remove("hidden");
-              });
-            } else {
+          currentTrialRef = db.ref(`rooms/${room}/trials/${trialKey}`);
+
+          if (!trialData || trialData.status !== 'countdown') return;
+
+          document.getElementById("receiverPrompt").innerText = "Focus now...";
+          const elapsed = (Date.now() - (trialData.startTime || Date.now())) / 1000;
+          const remaining = Math.ceil(7 - elapsed);
+          if (remaining > 0) {
+            runCountdown("countdown", remaining, () => {
               document.getElementById("guessSection").classList.remove("hidden");
-            }
-          });
+            });
+          } else {
+            document.getElementById("guessSection").classList.remove("hidden");
+          }
         });
       }
 
