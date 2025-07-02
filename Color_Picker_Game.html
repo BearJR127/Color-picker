@@ -181,8 +181,10 @@
       document.getElementById("trialCounter").innerText = `Trial ${trialNum} of ${maxTrials}`;
       const now = new Date().toLocaleString();
       const startTime = Date.now();
-      db.ref(`rooms/${room}/meta`).set({ currentTrial: trialNum });
-      db.ref(`rooms/${room}/trials/trial${trialNum}`).set({ color, status: 'countdown', senderTime: now, startTime });
+      db.ref(`rooms/${room}/meta`).set({ currentTrial: trialNum })
+        .catch(err => console.error('Failed to write meta:', err));
+      db.ref(`rooms/${room}/trials/trial${trialNum}`).set({ color, status: 'countdown', senderTime: now, startTime })
+        .catch(err => console.error('Failed to create trial:', err));
 
       document.getElementById("senderInputBlock").classList.add("hidden");
       const colorName = color.charAt(0).toUpperCase() + color.slice(1);
@@ -211,7 +213,8 @@
           receiverGuess: guess,
           receiverTime: now,
           status: 'completed'
-        });
+        })
+        .catch(err => console.error('Failed to submit guess:', err));
         alert("Guess submitted. Wait for next trial.");
         document.querySelectorAll('input[name="guess"]').forEach(e => e.checked = false);
         document.getElementById("guessSection").classList.add("hidden");
