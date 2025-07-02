@@ -63,7 +63,7 @@
 </head>
 <body>
   <h1>Color Picker - A Fun Color Guessing Game </h1>
-  <input type="number" id="roomCode" inputmode="numeric" pattern="[0-9]*" placeholder="Enter Room Code">
+  <input type="text" id="roomCode" pattern="[a-z0-9]{1,12}" maxlength="12" placeholder="Enter Room Code (a-z, 0-9)">
   <button onclick="joinRoom()" id="joinBtn">Join Room</button>
   <div id="trialCounter"></div>
 
@@ -155,8 +155,8 @@
     function joinRoom() {
       const input = document.getElementById("roomCode");
       room = input.value.trim();
-      if (!/^\d+$/.test(room)) {
-        alert("Room code must be numbers only.");
+      if (!/^[a-z0-9]{1,12}$/.test(room)) {
+        alert("Room code must be 1-12 lowercase letters or numbers.");
         return;
       }
       document.getElementById("roleSection").classList.remove("hidden");
