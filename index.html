@@ -322,6 +322,14 @@
       link.download = `psi_color_picker_results_${Date.now()}.csv`;
       link.click();
     }
+
+    // Warn the user if they attempt to leave in the middle of a session
+    window.addEventListener('beforeunload', (e) => {
+      if (role && trialNum < maxTrials) {
+        e.preventDefault();
+        e.returnValue = 'You are leaving an active session and the trial will not be complete.';
+      }
+    });
   </script>
   <a href="dashboard.html" class="floating-btn">Dashboard</a>
 </body>
