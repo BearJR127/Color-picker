@@ -150,8 +150,9 @@
       trialNum++;
       document.getElementById("trialCounter").innerText = `Trial ${trialNum} of ${maxTrials}`;
       const now = new Date().toLocaleString();
+      const startTime = Date.now();
       db.ref(`rooms/${room}/meta`).set({ currentTrial: trialNum });
-      db.ref(`rooms/${room}/trials/trial${trialNum}`).set({ color, status: 'countdown', senderTime: now });
+      db.ref(`rooms/${room}/trials/trial${trialNum}`).set({ color, status: 'countdown', senderTime: now, startTime });
 
       document.getElementById("senderInputBlock").classList.add("hidden");
       const colorName = color.charAt(0).toUpperCase() + color.slice(1);
@@ -242,9 +243,15 @@
             const trialData = trialSnap.val();
             if (!trialData || trialData.status !== 'countdown') return;
             document.getElementById("receiverPrompt").innerText = "Focus now...";
-            runCountdown("countdown", 7, () => {
+            const elapsed = (Date.now() - (trialData.startTime || Date.now())) / 1000;
+            const remaining = Math.ceil(7 - elapsed);
+            if (remaining > 0) {
+              runCountdown("countdown", remaining, () => {
+                document.getElementById("guessSection").classList.remove("hidden");
+              });
+            } else {
               document.getElementById("guessSection").classList.remove("hidden");
-            });
+            }
           });
         });
       }
