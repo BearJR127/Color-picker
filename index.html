@@ -136,6 +136,9 @@
 
     let room = "", role = "", trialNum = 0;
     let currentTrialRef = null;
+    let presenceRef = null;
+    let waitTimer = null;
+    let partnerRole = "";
     const maxTrials = 10;
     const results = [];
 
@@ -166,9 +169,14 @@
 
       function setRole(r) {
         role = r;
+        partnerRole = r === 'sender' ? 'receiver' : 'sender';
         document.getElementById("senderBtn").disabled = true;
         document.getElementById("receiverBtn").disabled = true;
         document.getElementById("instructions").classList.remove("hidden");
+
+        presenceRef = db.ref(`rooms/${room}/meta/${role}Online`);
+        presenceRef.set(true);
+        presenceRef.onDisconnect().set(false);
 
         if (r === 'sender') {
           document.getElementById("senderInstructions").classList.remove("hidden");
@@ -221,6 +229,7 @@
         const form = document.getElementById("guessForm");
         const guess = form.guess.value;
         if (!guess) return alert("Please select a color.");
+        if (waitTimer) clearTimeout(waitTimer);
         const now = new Date().toLocaleString();
         db.ref(`rooms/${room}/trials/trial${trialNum}`).update({
           receiverGuess: guess,
@@ -252,10 +261,22 @@
       }, 1000);
     }
 
+    function checkPartnerPresence() {
+      db.ref(`rooms/${room}/meta/${partnerRole}Online`).once('value').then(snap => {
+        if (!snap.val()) {
+          alert('Your partner is no longer available. Session will end. Please save your results.');
+          loadResultsAndShowSummary();
+        }
+      });
+    }
+
     function listenForReceiverGuess(trial) {
+      if (waitTimer) clearTimeout(waitTimer);
+      waitTimer = setTimeout(checkPartnerPresence, 60000);
       db.ref(`rooms/${room}/trials/trial${trial}/receiverGuess`).on('value', snapshot => {
         const guess = snapshot.val();
         if (guess) {
+          clearTimeout(waitTimer);
           db.ref(`rooms/${room}/trials/trial${trial}`).once('value').then(snap => {
             const data = snap.val();
             const match = data.color === guess ? 'Match' : 'Miss';
@@ -277,6 +298,9 @@
             loadResultsAndShowSummary();
             return;
           }
+
+          if (waitTimer) clearTimeout(waitTimer);
+          waitTimer = setTimeout(checkPartnerPresence, 60000);
 
           trialNum = newTrial;
           document.getElementById("trialCounter").innerText = `Trial ${trialNum} of ${maxTrials}`;
@@ -304,7 +328,8 @@
 
     function showSummary() {
         let matches = results.filter(r => r.match === 'Match').length;
-        let pct = ((matches / maxTrials) * 100).toFixed(2);
+        let totalCompleted = results.filter(r => r.match !== 'N/A').length;
+        let pct = totalCompleted ? ((matches / totalCompleted) * 100).toFixed(2) : '0.00';
         let pValue = (Math.pow(0.25, matches)).toExponential(2);
         let chancePct = (Math.pow(0.25, matches) * 100).toFixed(10);  // optional precision
       let html = `
@@ -329,20 +354,25 @@
       
       function loadResultsAndShowSummary() {
         db.ref(`rooms/${room}/trials`).once('value').then(snapshot => {
-          const trials = snapshot.val();
+          const trials = snapshot.val() || {};
           results.length = 0; // clear local array
-          Object.keys(trials).forEach(key => {
-            const t = trials[key];
-            const match = t.color === t.receiverGuess ? 'Match' : 'Miss';
+          for (let i = 1; i <= maxTrials; i++) {
+            const t = trials[`trial${i}`] || {};
+            const color = t.color || 'N/A';
+            const guess = t.receiverGuess || 'N/A';
+            let match = 'N/A';
+            if (color !== 'N/A' && guess !== 'N/A') {
+              match = color === guess ? 'Match' : 'Miss';
+            }
             results.push({
-              trial: parseInt(key.replace('trial','')),
-              color: t.color,
-              guess: t.receiverGuess,
+              trial: i,
+              color,
+              guess,
               match,
               senderTime: t.senderTime || '',
               receiverTime: t.receiverTime || ''
             });
-          });
+          }
           showSummary();
         });
       }
