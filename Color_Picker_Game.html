@@ -139,6 +139,19 @@
     const maxTrials = 10;
     const results = [];
 
+    function autoFillNextRoom() {
+      db.ref('rooms').once('value').then(snapshot => {
+        const rooms = snapshot.val() || {};
+        const numbers = Object.keys(rooms)
+          .map(r => parseInt(r, 10))
+          .filter(n => !isNaN(n));
+        const next = numbers.length ? Math.max(...numbers) + 1 : 1;
+        document.getElementById('roomCode').value = next;
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', autoFillNextRoom);
+
     function joinRoom() {
       const input = document.getElementById("roomCode");
       room = input.value.trim();
