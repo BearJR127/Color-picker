@@ -10,6 +10,18 @@
     body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
     table { border-collapse: collapse; margin: 20px auto; width: 90%; }
     th, td { border: 1px solid #ccc; padding: 8px; }
+    .floating-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #007bff;
+      color: #fff;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
@@ -87,5 +99,6 @@ function loadDashboard() {
 }
 loadDashboard();
 </script>
+<a href="dashboard.html" class="floating-btn">Dashboard</a>
 </body>
 </html>
