@@ -105,6 +105,7 @@
     const db = firebase.database();
 
     let room = "", role = "", trialNum = 0;
+    let currentTrialRef = null;
     const maxTrials = 10;
     const results = [];
 
@@ -225,17 +226,19 @@
         db.ref(`rooms/${room}/meta`).on('value', snapshot => {
           const data = snapshot.val();
           if (!data || !data.currentTrial) return;
-          trialNum = data.currentTrial;
-          document.getElementById("trialCounter").innerText = `Trial ${trialNum} of ${maxTrials}`;
+          const newTrial = data.currentTrial;
 
-          // ADD THIS:
-          if (trialNum > maxTrials) {
+          if (newTrial > maxTrials) {
             loadResultsAndShowSummary();
             return;
           }
 
-          const trialRef = db.ref(`rooms/${room}/trials/trial${trialNum}`);
-          trialRef.on('value', trialSnap => {
+          trialNum = newTrial;
+          document.getElementById("trialCounter").innerText = `Trial ${trialNum} of ${maxTrials}`;
+
+          if (currentTrialRef) currentTrialRef.off();
+          currentTrialRef = db.ref(`rooms/${room}/trials/trial${trialNum}`);
+          currentTrialRef.on('value', trialSnap => {
             const trialData = trialSnap.val();
             if (!trialData || trialData.status !== 'countdown') return;
             document.getElementById("receiverPrompt").innerText = "Focus now...";
