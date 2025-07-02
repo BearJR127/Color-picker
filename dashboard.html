@@ -98,9 +98,10 @@ function calculateRoomRates(trials) {
 }
 
 function loadDashboard() {
-  db.ref('rooms').once('value').then(snap => {
+  db.ref('rooms').on('value', snap => {
     const rooms = snap.val() || {};
     const tbody = document.getElementById('dashBody');
+    tbody.innerHTML = '';
     Object.keys(rooms).forEach(roomId => {
       const trials = rooms[roomId].trials || {};
       const rates = calculateRoomRates(trials);
