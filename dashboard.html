@@ -6,6 +6,7 @@
   <title>Color Picker Dashboard</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
     table { border-collapse: collapse; margin: 20px auto; width: 90%; }
@@ -69,6 +70,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+firebase.auth().signInAnonymously().catch(err => console.error('Auth error:', err));
 
 function calculateRoomRates(trials) {
   const colors = ['red','green','blue','yellow'];
