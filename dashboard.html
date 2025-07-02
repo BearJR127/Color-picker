@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Picker Dashboard</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+    table { border-collapse: collapse; margin: 20px auto; width: 90%; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Results Dashboard</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Room</th>
+        <th>Red %</th>
+        <th>Green %</th>
+        <th>Blue %</th>
+        <th>Yellow %</th>
+        <th>Overall %</th>
+      </tr>
+    </thead>
+    <tbody id="dashBody"></tbody>
+  </table>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDDxRTWozDi_ohxMok37twz-3LSSK_QleA",
+  authDomain: "psicolorpicker.firebaseapp.com",
+  databaseURL: "https://psicolorpicker-default-rtdb.firebaseio.com",
+  projectId: "psicolorpicker",
+  storageBucket: "psicolorpicker.firebasestorage.app",
+  messagingSenderId: "745056348455",
+  appId: "1:745056348455:web:b52e928aaf812e2e9ca102"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function calculateRoomRates(trials) {
+  const colors = ['red','green','blue','yellow'];
+  const counts = {red:{t:0,m:0}, green:{t:0,m:0}, blue:{t:0,m:0}, yellow:{t:0,m:0}};
+  let totalTrials = 0;
+  let totalMatches = 0;
+
+  Object.values(trials || {}).forEach(t => {
+    const color = t.color;
+    const guess = t.receiverGuess;
+    if(!color || !guess) return;
+    if(counts[color]) counts[color].t++;
+    if(color === guess) {
+      totalMatches++;
+      if(counts[color]) counts[color].m++;
+    }
+    totalTrials++;
+  });
+
+  const rates = {};
+  colors.forEach(c => {
+    const data = counts[c];
+    rates[c] = data.t ? ((data.m/data.t)*100).toFixed(2) : '0.00';
+  });
+  rates.overall = totalTrials ? ((totalMatches/totalTrials)*100).toFixed(2) : '0.00';
+  return rates;
+}
+
+function loadDashboard() {
+  db.ref('rooms').once('value').then(snap => {
+    const rooms = snap.val() || {};
+    const tbody = document.getElementById('dashBody');
+    Object.keys(rooms).forEach(roomId => {
+      const trials = rooms[roomId].trials || {};
+      const rates = calculateRoomRates(trials);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${roomId}</td>`+
+        `<td>${rates.red}</td>`+
+        `<td>${rates.green}</td>`+
+        `<td>${rates.blue}</td>`+
+        `<td>${rates.yellow}</td>`+
+        `<td>${rates.overall}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+}
+loadDashboard();
+</script>
+</body>
+</html>
