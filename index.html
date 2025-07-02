@@ -110,11 +110,17 @@
 
     function joinRoom() {
       room = document.getElementById("roomCode").value.trim();
-      if (room) {
-        document.getElementById("roleSection").classList.remove("hidden");
-        document.getElementById("roomCode").disabled = true;
-        document.getElementById("joinBtn").disabled = true;
-      }
+      if (!room) return;
+
+      db.ref(`rooms/${room}`).once('value').then(snapshot => {
+        if (snapshot.exists()) {
+          alert("Sorry, this room code has already been used.");
+        } else {
+          document.getElementById("roleSection").classList.remove("hidden");
+          document.getElementById("roomCode").disabled = true;
+          document.getElementById("joinBtn").disabled = true;
+        }
+      });
     }
 
       function setRole(r) {
