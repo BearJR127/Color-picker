@@ -29,17 +29,35 @@
     #summaryTable { border-collapse: collapse; margin: 20px auto; width: 90%; }
     #summaryTable th, #summaryTable td { border: 1px solid #ccc; padding: 8px; }
     footer { margin-top: 40px; font-size: 0.9em; }
-    .floating-btn {
+    .floating-menu {
       position: fixed;
       bottom: 20px;
       right: 20px;
+      z-index: 1000;
+    }
+    .floating-menu button {
       background-color: #007bff;
       color: #fff;
       padding: 10px 15px;
+      border: none;
       border-radius: 5px;
-      text-decoration: none;
       box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-      z-index: 1000;
+    }
+    .floating-menu-links {
+      display: none;
+      margin-top: 5px;
+      background-color: #007bff;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .floating-menu-links a {
+      color: #fff;
+      text-decoration: none;
+      display: block;
+      padding: 10px 15px;
+    }
+    .floating-menu-links a + a {
+      border-top: 1px solid rgba(255,255,255,0.3);
     }
   </style>
 </head>
@@ -330,7 +348,18 @@
         e.returnValue = 'You are leaving an active session and the trial will not be complete.';
       }
     });
+
+    function toggleMenu() {
+      const links = document.getElementById('menuLinks');
+      links.style.display = links.style.display === 'block' ? 'none' : 'block';
+    }
   </script>
-  <a href="dashboard.html" class="floating-btn">Dashboard</a>
+  <div class="floating-menu">
+    <button id="menuBtn" onclick="toggleMenu()">Menu</button>
+    <div id="menuLinks" class="floating-menu-links">
+      <a href="index.html">Home</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+  </div>
 </body>
 </html>
