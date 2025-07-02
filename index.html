@@ -153,7 +153,9 @@
       db.ref(`rooms/${room}/trials/trial${trialNum}`).set({ color, status: 'countdown', senderTime: now });
 
       document.getElementById("senderInputBlock").classList.add("hidden");
-      document.getElementById("statusMsg").innerText = `Focusing on ${color}...`;
+      const colorName = color.charAt(0).toUpperCase() + color.slice(1);
+      document.getElementById("statusMsg").innerHTML =
+        `Focusing on <strong style="color:${color};">${colorName}</strong>...`;
       runCountdown("senderCountdown", 7, () => {
         document.getElementById("statusMsg").innerText = "Waiting for receiver to guess...";
         listenForReceiverGuess(trialNum);
