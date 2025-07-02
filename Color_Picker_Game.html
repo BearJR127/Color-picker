@@ -132,9 +132,9 @@
       appId: "1:745056348455:web:b52e928aaf812e2e9ca102"
     };
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-  firebase.auth().signInAnonymously().catch(err => console.error('Auth error:', err));
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    firebase.auth().signInAnonymously().catch(err => console.error('Auth error:', err));
 
     let room = "", role = "", trialNum = 0;
     let currentTrialRef = null;
