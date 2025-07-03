@@ -179,9 +179,17 @@
         alert("Room code must be 1-12 lowercase letters or numbers.");
         return;
       }
-      document.getElementById("roleSection").classList.remove("hidden");
-      input.disabled = true;
-      document.getElementById("joinBtn").disabled = true;
+      db.ref(`rooms/${room}`).once('value').then(snap => {
+        if (snap.exists()) {
+          alert('That room number has already been used. Please try another.');
+          autoFillNextRoom();
+          input.focus();
+          return;
+        }
+        document.getElementById("roleSection").classList.remove("hidden");
+        input.disabled = true;
+        document.getElementById("joinBtn").disabled = true;
+      });
     }
 
       function setRole(r) {
