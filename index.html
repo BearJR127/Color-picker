@@ -156,8 +156,16 @@
         const rooms = snapshot.val() || {};
         const numbers = Object.keys(rooms)
           .map(r => parseInt(r, 10))
-          .filter(n => !isNaN(n));
-        const next = numbers.length ? Math.max(...numbers) + 1 : 1;
+          .filter(n => !isNaN(n))
+          .sort((a, b) => a - b);
+        let next = 1;
+        for (const num of numbers) {
+          if (num === next) {
+            next++;
+          } else if (num > next) {
+            break;
+          }
+        }
         document.getElementById('roomCode').value = next;
       });
     }
