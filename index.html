@@ -310,7 +310,11 @@
 
           currentTrialRef.on('value', trialSnap => {
             const trialData = trialSnap.val();
-            if (!trialData || trialData.status !== 'countdown') return;
+            if (!trialData || trialData.status !== 'countdown') {
+              document.getElementById("receiverPrompt").innerText = "Waiting for sender...";
+              document.getElementById("countdown").innerText = "";
+              return;
+            }
 
             document.getElementById("receiverPrompt").innerText = "Focus now...";
             const elapsed = (Date.now() - (trialData.startTime || Date.now())) / 1000;
