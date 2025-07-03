@@ -330,13 +330,14 @@
         let matches = results.filter(r => r.match === 'Match').length;
         let totalCompleted = results.filter(r => r.match !== 'N/A').length;
         let pct = totalCompleted ? ((matches / totalCompleted) * 100).toFixed(2) : '0.00';
-        let pValue = (Math.pow(0.25, matches)).toExponential(2);
-        let chancePct = (Math.pow(0.25, matches) * 100).toFixed(10);  // optional precision
+        let pRaw = Math.pow(0.25, matches);
+        let pValue = pRaw.toExponential(2);
+        let chanceOdds = (1 / pRaw).toLocaleString(undefined, { maximumFractionDigits: 0 });
       let html = `
         <h3>Session Summary</h3>
         <p>${matches} Matches out of ${maxTrials} (${pct}%)</p>
         <p>P-Value (random chance of this or better): <strong>${pValue}</strong></p>
-        <p>Percent chance this outcome occurred randomly: <strong>${chancePct}%</strong></p>
+        <p>Chance this outcome occurred randomly: <strong>1 in ${chanceOdds}</strong></p>
         <table id="summaryTable">
           <tr><th>Trial</th><th>Color</th><th>Guess</th><th>Match</th></tr>
       `;
