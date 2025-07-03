@@ -142,6 +142,15 @@
     const maxTrials = 10;
     const results = [];
 
+    function hashString(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return Math.abs(hash).toString(16);
+    }
+
     function autoFillNextRoom() {
       db.ref('rooms').once('value').then(snapshot => {
         const rooms = snapshot.val() || {};
@@ -280,7 +289,16 @@
           db.ref(`rooms/${room}/trials/trial${trial}`).once('value').then(snap => {
             const data = snap.val();
             const match = data.color === guess ? 'Match' : 'Miss';
-            results.push({ trial, color: data.color, guess, match, senderTime: data.senderTime, receiverTime: data.receiverTime });
+            results.push({
+              trial,
+              color: data.color,
+              guess,
+              match,
+              senderTime: data.senderTime,
+              receiverTime: data.receiverTime,
+              colorHash: hashString(data.color || ''),
+              guessHash: hashString(guess)
+            });
             document.getElementById("trialResult").innerText = `Receiver guessed ${guess} → ${match}`;
             document.getElementById("trialResult").classList.remove("hidden");
             document.getElementById("nextTrialBtn").classList.remove("hidden");
@@ -375,7 +393,9 @@
               guess,
               match,
               senderTime: t.senderTime || '',
-              receiverTime: t.receiverTime || ''
+              receiverTime: t.receiverTime || '',
+              colorHash: color !== 'N/A' ? hashString(color) : '',
+              guessHash: guess !== 'N/A' ? hashString(guess) : ''
             });
           }
           showSummary();
@@ -383,9 +403,9 @@
       }
 
     function downloadCSV() {
-      let csv = "Trial,Color,Guess,Match,SenderTime,ReceiverTime\n";
+      let csv = "Trial,Color,Guess,Match,SenderTime,ReceiverTime,ColorHash,GuessHash\n";
       results.forEach(r => {
-        csv += `${r.trial},${r.color},${r.guess},${r.match},${r.senderTime},${r.receiverTime}\n`;
+        csv += `${r.trial},${r.color},${r.guess},${r.match},${r.senderTime},${r.receiverTime},${r.colorHash || ''},${r.guessHash || ''}\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv' });
       const link = document.createElement("a");
