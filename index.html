@@ -65,6 +65,10 @@
   <h1>Color Picker - A Fun Color Guessing Game </h1>
   <input type="text" id="roomCode" pattern="[a-z0-9]{1,12}" maxlength="12" placeholder="Enter Room Code (a-z, 0-9)">
   <button onclick="joinRoom()" id="joinBtn">Join Room</button>
+  <div id="suggestedRoomsContainer">
+    <p><strong>Suggested available rooms:</strong></p>
+    <ul id="suggestedRooms"></ul>
+  </div>
   <div id="trialCounter"></div>
 
   <div id="roleSection" class="hidden">
@@ -154,19 +158,22 @@
     function autoFillNextRoom() {
       db.ref('rooms').once('value').then(snapshot => {
         const rooms = snapshot.val() || {};
-        const numbers = Object.keys(rooms)
+        const used = new Set(Object.keys(rooms)
           .map(r => parseInt(r, 10))
-          .filter(n => !isNaN(n))
-          .sort((a, b) => a - b);
+          .filter(n => !isNaN(n)));
+        const suggestions = [];
         let next = 1;
-        for (const num of numbers) {
-          if (num === next) {
-            next++;
-          } else if (num > next) {
-            break;
+        while (suggestions.length < 3) {
+          if (!used.has(next)) {
+            suggestions.push(next);
           }
+          next++;
         }
-        document.getElementById('roomCode').value = next;
+        document.getElementById('roomCode').value = suggestions[0];
+        const list = document.getElementById('suggestedRooms');
+        if (list) {
+          list.innerHTML = suggestions.map(n => `<li>${n}</li>`).join('');
+        }
       });
     }
 
